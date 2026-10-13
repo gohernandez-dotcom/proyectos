@@ -1,0 +1,28 @@
+{
+    admin off
+}
+
+:{$PORT} {
+    encode gzip
+
+    # Route backend endpoints to the Reflex backend
+    handle /_event* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /ping {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /_upload* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /api* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # Serve static frontend assets for everything else
+    handle {
+        root * /app/.web/build/client
+        try_files {path} {path}/ /404.html
+        file_server
+    }
+}

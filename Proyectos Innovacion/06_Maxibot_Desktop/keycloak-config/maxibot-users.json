@@ -1,0 +1,61 @@
+[
+  {
+    "username": "admin",
+    "email": "admin@maxibot.com",
+    "firstName": "Admin",
+    "lastName": "MaxiBot",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "admin123",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["maxibot-admin"],
+    "clientRoles": {
+      "maxibot-client": ["maxibot-user", "maxibot-admin"]
+    }
+  },
+  {
+    "username": "usuario1",
+    "email": "usuario1@empresa.com",
+    "firstName": "Usuario",
+    "lastName": "Uno",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "usuario123",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["maxibot-user"],
+    "clientRoles": {
+      "maxibot-client": ["maxibot-user"]
+    }
+  },
+  {
+    "username": "usuario2",
+    "email": "usuario2@empresa.com",
+    "firstName": "Usuario",
+    "lastName": "Dos",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "usuario123",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["maxibot-user"],
+    "clientRoles": {
+      "maxibot-client": ["maxibot-user"]
+    }
+  }
+]
+
+

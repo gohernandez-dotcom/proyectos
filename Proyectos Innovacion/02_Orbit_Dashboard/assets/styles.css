@@ -1,0 +1,9 @@
+/* Force hide the Built with Reflex badge */
+.reflex-badge,
+[class*="reflex-badge"],
+a[href*="reflex.dev"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}

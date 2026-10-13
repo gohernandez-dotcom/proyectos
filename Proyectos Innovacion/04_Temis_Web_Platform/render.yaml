@@ -1,0 +1,47 @@
+services:
+  # 1. TEMIS Backend Service (FastAPI)
+  - type: web
+    name: temis-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: Temis
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m backend.main"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TEMIS_GOOGLE_SA_BASE64
+        sync: false
+      - key: TEMIS_DRIVE_FOLDER_ID
+        value: 1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI
+
+  # 2. TEMIS Web Flow Service (Reflex Full-Stack App)
+  - type: web
+    name: temis-web-flow
+    env: python
+    region: oregon
+    plan: free
+    rootDir: Temis
+    buildCommand: "pip install -r requirements.txt && python -m reflex init && python -m reflex export --no-zip"
+    startCommand: "python prod_server.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: DEFAULT_ADMIN_EMAIL
+        value: mxjhurtado@maxillc.com
+      - key: DEFAULT_ADMIN_PASSWORD
+        value: Temis123456*
+      - key: TEMIS_GOOGLE_SA_BASE64
+        sync: false
+      - key: TEMIS_DRIVE_FOLDER_ID
+        value: 1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: temis-backend
+          property: host

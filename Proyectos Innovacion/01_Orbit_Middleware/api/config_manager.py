@@ -1,0 +1,579 @@
+"""
+Configuration manager for dynamic config updates via Redis.
+"""
+
+from typing import Optional, List
+import json
+from .models import (
+    MCPConfig,
+    CacheConfig,
+    SecurityConfig,
+    DashboardUser,
+    UserRole,
+    AuditLogEntry,
+    AuditAction,
+    EmailAlertConfig,
+    GoogleChatAlertConfig,
+    AgentConfig
+)
+from .config import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class ConfigManager:
+    """Manages dynamic configuration stored in Redis"""
+
+    def __init__(self, redis_client=None):
+        self.redis = redis_client
+        self.enabled = redis_client is not None
+        self._memory_config = {}
+        if not self.enabled:
+            logger.warning("Redis is disabled. ConfigManager will use In-Memory storage (not persistent).")
+
+    # ============================================================
+    # MCP Configuration
+    # ============================================================
+
+    async def get_mcp_config(self) -> MCPConfig:
+        """Get current MCP configuration"""
+        if not self.enabled:
+            return MCPConfig(
+                url=self._memory_config.get("url", settings.MCP_URL),
+                timeout=settings.MCP_TIMEOUT,
+                max_retries=settings.MCP_MAX_RETRIES,
+                retry_delay=settings.MCP_RETRY_DELAY,
+                mcp_token=settings.MCP_TOKEN,
+                use_keycloak=settings.KC_USE_AUTH,
+                kc_server_url=settings.KC_SERVER_URL,
+                kc_realm=settings.KC_REALM,
+                kc_client_id=settings.KC_CLIENT_ID,
+                kc_client_secret=settings.KC_CLIENT_SECRET,
+                gemini_api_key=self._memory_config.get("gemini_api_key") or settings.GEMINI_API_KEY
+            )
+
+        try:
+            url = await self.redis.get("config:mcp:url")
+            timeout = await self.redis.get("config:mcp:timeout")
+            max_retries = await self.redis.get("config:mcp:max_retries")
+            retry_delay = await self.redis.get("config:mcp:retry_delay")
+            mcp_token = await self.redis.get("config:mcp:mcp_token")
+            use_keycloak = await self.redis.get("config:mcp:use_keycloak")
+            kc_server_url = await self.redis.get("config:mcp:kc_server_url")
+            kc_realm = await self.redis.get("config:mcp:kc_realm")
+            kc_client_id = await self.redis.get("config:mcp:kc_client_id")
+            kc_client_secret = await self.redis.get("config:mcp:kc_client_secret")
+            gemini_api_key = await self.redis.get("config:mcp:gemini_api_key")
+            emergency_mode = await self.redis.get("config:mcp:emergency_mode")
+
+            return MCPConfig(
+                url=url.decode() if url else settings.MCP_URL,
+                timeout=int(timeout) if timeout else settings.MCP_TIMEOUT,
+                max_retries=int(max_retries) if max_retries else settings.MCP_MAX_RETRIES,
+                retry_delay=int(retry_delay) if retry_delay else settings.MCP_RETRY_DELAY,
+                mcp_token=mcp_token.decode() if mcp_token else settings.MCP_TOKEN,
+                use_keycloak=use_keycloak.decode() == 'true' if use_keycloak else settings.KC_USE_AUTH,
+                kc_server_url=kc_server_url.decode() if kc_server_url else settings.KC_SERVER_URL,
+                kc_realm=kc_realm.decode() if kc_realm else settings.KC_REALM,
+                kc_client_id=kc_client_id.decode() if kc_client_id else settings.KC_CLIENT_ID,
+                kc_client_secret=kc_client_secret.decode() if kc_client_secret else settings.KC_CLIENT_SECRET,
+                gemini_api_key=gemini_api_key.decode() if gemini_api_key else settings.GEMINI_API_KEY,
+                emergency_mode=emergency_mode.decode() == 'true' if emergency_mode else False
+            )
+        except Exception as e:
+            logger.error(f"Failed to get MCP config from Redis: {str(e)}")
+            return MCPConfig(
+                url=self._memory_config.get("url", settings.MCP_URL),
+                timeout=settings.MCP_TIMEOUT,
+                max_retries=settings.MCP_MAX_RETRIES,
+                retry_delay=settings.MCP_RETRY_DELAY,
+                mcp_token=settings.MCP_TOKEN,
+                use_keycloak=settings.KC_USE_AUTH,
+                kc_server_url=settings.KC_SERVER_URL,
+                kc_realm=settings.KC_REALM,
+                kc_client_id=settings.KC_CLIENT_ID,
+                kc_client_secret=settings.KC_CLIENT_SECRET,
+                gemini_api_key=self._memory_config.get("gemini_api_key") or settings.GEMINI_API_KEY,
+                emergency_mode=self._memory_config.get("emergency_mode", False)
+            )
+
+    async def update_mcp_config(self, config: MCPConfig):
+        """Update MCP configuration"""
+        if not self.enabled:
+            logger.warning("Updating config in MEMORY (not persistent)")
+            self._memory_config["url"] = config.url
+            self._memory_config["gemini_api_key"] = config.gemini_api_key
+            self._memory_config["emergency_mode"] = config.emergency_mode
+            return True
+
+        try:
+            await self.redis.set("config:mcp:url", config.url)
+            await self.redis.set("config:mcp:timeout", config.timeout)
+            await self.redis.set("config:mcp:max_retries", config.max_retries)
+            await self.redis.set("config:mcp:retry_delay", config.retry_delay)
+
+            if config.mcp_token:
+                await self.redis.set("config:mcp:mcp_token", config.mcp_token)
+            else:
+                await self.redis.delete("config:mcp:mcp_token")
+
+            await self.redis.set("config:mcp:use_keycloak", "true" if config.use_keycloak else "false")
+            if config.kc_server_url:
+                await self.redis.set("config:mcp:kc_server_url", config.kc_server_url)
+            if config.kc_realm:
+                await self.redis.set("config:mcp:kc_realm", config.kc_realm)
+            if config.kc_client_id:
+                await self.redis.set("config:mcp:kc_client_id", config.kc_client_id)
+            if config.kc_client_secret:
+                await self.redis.set("config:mcp:kc_client_secret", config.kc_client_secret)
+
+            if config.gemini_api_key:
+                await self.redis.set("config:mcp:gemini_api_key", config.gemini_api_key)
+            else:
+                await self.redis.delete("config:mcp:gemini_api_key")
+
+            await self.redis.set("config:mcp:emergency_mode", "true" if config.emergency_mode else "false")
+
+            logger.info(f"MCP config updated: {config.url}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update MCP config: {str(e)}")
+            return False
+
+    # ============================================================
+    # Agent Configuration
+    # ============================================================
+
+    async def get_agents(self) -> List[AgentConfig]:
+        """Get all dynamic agents"""
+        if not self.enabled:
+            return list(self._memory_config.get("agents", {}).values())
+
+        try:
+            agent_keys = await self.redis.keys("config:agents:*")
+            agents = []
+            for key in agent_keys:
+                agent_data = await self.redis.get(key)
+                if agent_data:
+                    agents.append(AgentConfig.model_validate_json(agent_data))
+            return agents
+        except Exception as e:
+            logger.error(f"Failed to get agents from Redis: {str(e)}")
+            return []
+
+    async def get_agent(self, name: str) -> Optional[AgentConfig]:
+        """Get a specific agent by name"""
+        if not self.enabled:
+            return None
+        try:
+            agent_data = await self.redis.get(f"config:agents:{name}")
+            if agent_data:
+                return AgentConfig.model_validate_json(agent_data)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get agent {name}: {str(e)}")
+            return None
+
+    async def update_agent(self, agent: AgentConfig) -> bool:
+        """Add or update an agent"""
+        if not self.enabled:
+            if "agents" not in self._memory_config:
+                self._memory_config["agents"] = {}
+            self._memory_config["agents"][agent.name] = agent
+            logger.info(f"Agent {agent.name} saved to In-Memory storage (Fallback)")
+            return True
+        try:
+            await self.redis.set(f"config:agents:{agent.name}", agent.model_dump_json())
+            logger.info(f"Agent updated in Redis: {agent.name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update agent: {str(e)}")
+            return False
+
+    async def delete_agent(self, name: str) -> bool:
+        """Delete an agent"""
+        if not self.enabled:
+            return False
+        try:
+            await self.redis.delete(f"config:agents:{name}")
+            logger.info(f"Agent deleted from Redis: {name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete agent: {str(e)}")
+            return False
+
+    async def get_orchestrator(self) -> Optional[AgentConfig]:
+        """Get the agent marked as orchestrator"""
+        agents = await self.get_agents()
+        for agent in agents:
+            if agent.is_orchestrator:
+                return agent
+        return None
+
+    # ============================================================
+    # Cache Configuration
+    # ============================================================
+
+    async def get_cache_config(self) -> CacheConfig:
+        """Get current cache configuration"""
+        if not self.enabled:
+            return CacheConfig(
+                enabled=settings.CACHE_ENABLED,
+                ttl=settings.CACHE_TTL,
+                max_size=settings.CACHE_MAX_SIZE
+            )
+        try:
+            enabled = await self.redis.get("config:cache:enabled")
+            ttl = await self.redis.get("config:cache:ttl")
+            max_size = await self.redis.get("config:cache:max_size")
+
+            return CacheConfig(
+                enabled=enabled.decode() == "true" if enabled else settings.CACHE_ENABLED,
+                ttl=int(ttl) if ttl else settings.CACHE_TTL,
+                max_size=int(max_size) if max_size else settings.CACHE_MAX_SIZE
+            )
+        except Exception as e:
+            logger.error(f"Failed to get cache config: {str(e)}")
+            return CacheConfig(
+                enabled=settings.CACHE_ENABLED,
+                ttl=settings.CACHE_TTL,
+                max_size=settings.CACHE_MAX_SIZE
+            )
+
+    async def update_cache_config(self, config: CacheConfig):
+        """Update cache configuration"""
+        if not self.enabled:
+            return False
+        try:
+            await self.redis.set("config:cache:enabled", "true" if config.enabled else "false")
+            await self.redis.set("config:cache:ttl", config.ttl)
+            await self.redis.set("config:cache:max_size", config.max_size)
+            logger.info(f"Cache config updated: enabled={config.enabled}, ttl={config.ttl}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update cache config: {str(e)}")
+            return False
+
+    # ============================================================
+    # Security Configuration
+    # ============================================================
+
+    async def get_security_config(self) -> SecurityConfig:
+        """Get current security configuration"""
+        if not self.enabled:
+            return SecurityConfig(
+                webhook_secret=settings.WEBHOOK_SECRET,
+                rate_limit=settings.RATE_LIMIT_PER_MINUTE
+            )
+        try:
+            webhook_secret = await self.redis.get("config:security:webhook_secret")
+            rate_limit = await self.redis.get("config:security:rate_limit")
+
+            return SecurityConfig(
+                webhook_secret=webhook_secret.decode() if webhook_secret else settings.WEBHOOK_SECRET,
+                rate_limit=int(rate_limit) if rate_limit else settings.RATE_LIMIT_PER_MINUTE
+            )
+        except Exception as e:
+            logger.error(f"Failed to get security config: {str(e)}")
+            return SecurityConfig(
+                webhook_secret=settings.WEBHOOK_SECRET,
+                rate_limit=settings.RATE_LIMIT_PER_MINUTE
+            )
+
+    async def update_security_config(self, config: SecurityConfig) -> bool:
+        """Update security configuration"""
+        if not self.enabled:
+            return False
+        try:
+            await self.redis.set("config:security:webhook_secret", config.webhook_secret)
+            await self.redis.set("config:security:rate_limit", config.rate_limit)
+            logger.info("Security config updated")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update security config: {str(e)}")
+            return False
+
+    # ============================================================
+    # Email Alerts Configuration
+    # ============================================================
+
+    async def get_email_config(self) -> EmailAlertConfig:
+        """Get current email alert configuration"""
+        if not self.enabled:
+            return EmailAlertConfig(
+                smtp_server=settings.SMTP_SERVER,
+                smtp_port=settings.SMTP_PORT,
+                smtp_user=settings.SMTP_USER or "",
+                smtp_password=settings.SMTP_PASSWORD or "",
+                recipient_email=settings.ALERT_EMAIL_RECIPIENT or ""
+            )
+        try:
+            enabled = await self.redis.get("config:email:enabled")
+            smtp_server = await self.redis.get("config:email:smtp_server")
+            smtp_port = await self.redis.get("config:email:smtp_port")
+            smtp_user = await self.redis.get("config:email:smtp_user")
+            smtp_password = await self.redis.get("config:email:smtp_password")
+            recipient_email = await self.redis.get("config:email:recipient_email")
+            alert_mcp = await self.redis.get("config:email:alert_on_mcp_error")
+            alert_cb = await self.redis.get("config:email:alert_on_circuit_breaker")
+
+            return EmailAlertConfig(
+                enabled=enabled.decode() == "true" if enabled else False,
+                smtp_server=smtp_server.decode() if smtp_server else settings.SMTP_SERVER,
+                smtp_port=int(smtp_port) if smtp_port else settings.SMTP_PORT,
+                smtp_user=smtp_user.decode() if smtp_user else (settings.SMTP_USER or ""),
+                smtp_password=smtp_password.decode() if smtp_password else (settings.SMTP_PASSWORD or ""),
+                recipient_email=recipient_email.decode() if recipient_email else (settings.ALERT_EMAIL_RECIPIENT or ""),
+                alert_on_mcp_error=alert_mcp.decode() == "true" if alert_mcp else True,
+                alert_on_circuit_breaker=alert_cb.decode() == "true" if alert_cb else True
+            )
+        except Exception as e:
+            logger.error(f"Failed to get email config: {str(e)}")
+            return EmailAlertConfig()
+
+    async def update_email_config(self, config: EmailAlertConfig) -> bool:
+        """Update email alert configuration"""
+        if not self.enabled:
+            return False
+        try:
+            await self.redis.set("config:email:enabled", "true" if config.enabled else "false")
+            await self.redis.set("config:email:smtp_server", config.smtp_server)
+            await self.redis.set("config:email:smtp_port", config.smtp_port)
+            await self.redis.set("config:email:smtp_user", config.smtp_user)
+            await self.redis.set("config:email:smtp_password", config.smtp_password)
+            await self.redis.set("config:email:recipient_email", config.recipient_email)
+            await self.redis.set("config:email:alert_on_mcp_error", "true" if config.alert_on_mcp_error else "false")
+            await self.redis.set("config:email:alert_on_circuit_breaker", "true" if config.alert_on_circuit_breaker else "false")
+            logger.info("Email alert config updated")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update email config: {str(e)}")
+            return False
+
+    # ============================================================
+    # Google Chat Configuration
+    # ============================================================
+
+    async def get_google_chat_config(self) -> GoogleChatAlertConfig:
+        """Get current Google Chat configuration"""
+        if not self.enabled:
+            sa_b64_env = settings.GOOGLE_CHATS_SA_BASE64 or ""
+            return GoogleChatAlertConfig(
+                enabled=True if sa_b64_env else False,
+                sa_json_b64=sa_b64_env,
+                default_space_id=settings.GOOGLE_CHATS_DEFAULT_SPACE or ""
+            )
+        try:
+            enabled = await self.redis.get("config:google_chat:enabled")
+            sa_json = await self.redis.get("config:google_chat:sa_json_b64")
+            space_id = await self.redis.get("config:google_chat:default_space_id")
+            alert_mcp = await self.redis.get("config:google_chat:alert_on_mcp_error")
+            alert_cb = await self.redis.get("config:google_chat:alert_on_circuit_breaker")
+
+            sa_b64_val = sa_json.decode() if sa_json else (settings.GOOGLE_CHATS_SA_BASE64 or "")
+            is_enabled = enabled.decode() == "true" if enabled else bool(sa_b64_val)
+
+            return GoogleChatAlertConfig(
+                enabled=is_enabled,
+                sa_json_b64=sa_b64_val,
+                default_space_id=space_id.decode() if space_id else (settings.GOOGLE_CHATS_DEFAULT_SPACE or ""),
+                alert_on_mcp_error=alert_mcp.decode() == "true" if alert_mcp else True,
+                alert_on_circuit_breaker=alert_cb.decode() == "true" if alert_cb else True
+            )
+        except Exception as e:
+            logger.error(f"Failed to get google chat config: {str(e)}")
+            sa_b64_env = settings.GOOGLE_CHATS_SA_BASE64 or ""
+            return GoogleChatAlertConfig(enabled=True if sa_b64_env else False)
+
+    async def update_google_chat_config(self, config: GoogleChatAlertConfig) -> bool:
+        """Update Google Chat configuration"""
+        if not self.enabled:
+            self._memory_config["google_chat"] = config
+            return True
+        try:
+            await self.redis.set("config:google_chat:enabled", "true" if config.enabled else "false")
+            await self.redis.set("config:google_chat:sa_json_b64", config.sa_json_b64)
+            await self.redis.set("config:google_chat:default_space_id", config.default_space_id)
+            await self.redis.set("config:google_chat:alert_on_mcp_error", "true" if config.alert_on_mcp_error else "false")
+            await self.redis.set("config:google_chat:alert_on_circuit_breaker", "true" if config.alert_on_circuit_breaker else "false")
+            logger.info("Google Chat config updated")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update google chat config: {str(e)}")
+            return False
+
+    async def _ensure_redis(self):
+        """Ensure active Redis connection, reconnecting if transport was closed."""
+        if self.redis:
+            try:
+                await self.redis.ping()
+                return self.redis
+            except Exception:
+                pass
+        try:
+            from shared.redis_client import get_redis_client
+            self.redis = await get_redis_client()
+            if self.redis:
+                self.enabled = True
+            return self.redis
+        except Exception as e:
+            logger.error(f"Failed to refresh Redis client in ConfigManager: {e}")
+            return None
+
+    # ============================================================
+    # User Management
+    # ============================================================
+
+    async def get_users(self) -> List[DashboardUser]:
+        """Get all dashboard users from Redis"""
+        redis = await self._ensure_redis()
+        if not redis:
+            return [DashboardUser(
+                username=settings.DASHBOARD_USERNAME,
+                password=settings.DASHBOARD_PASSWORD,
+                role=UserRole.ADMIN
+            )]
+        try:
+            config_keys = await redis.keys("config:users:*")
+            orbit_keys = await redis.keys("orbit:user:*")
+            all_keys = list(set(config_keys + orbit_keys))
+            users = []
+            seen_usernames = set()
+
+            for key in all_keys:
+                user_data = await redis.get(key)
+                if user_data:
+                    try:
+                        raw = user_data.decode('utf-8') if isinstance(user_data, bytes) else str(user_data)
+                        data_dict = json.loads(raw)
+                        uname = data_dict.get("username") or data_dict.get("email") or ""
+                        uname = uname.strip().lower()
+                        if uname and uname not in seen_usernames:
+                            seen_usernames.add(uname)
+                            users.append(DashboardUser(
+                                username=uname,
+                                password=data_dict.get("password") or "maxi-secret-2025",
+                                role=data_dict.get("role") or UserRole.SUPERVISOR
+                            ))
+                    except Exception as parse_err:
+                        logger.warning(f"Could not parse user key {key}: {parse_err}")
+
+            if not users:
+                default_user = DashboardUser(
+                    username=settings.DASHBOARD_USERNAME,
+                    password=settings.DASHBOARD_PASSWORD,
+                    role=UserRole.ADMIN
+                )
+                await self.add_user(default_user)
+                return [default_user]
+
+            return users
+        except Exception as e:
+            logger.error(f"Failed to get users from Redis: {str(e)}")
+            return [DashboardUser(
+                username=settings.DASHBOARD_USERNAME,
+                password=settings.DASHBOARD_PASSWORD,
+                role=UserRole.ADMIN
+            )]
+
+    async def add_user(self, user: DashboardUser) -> bool:
+        """Add or update a user in Redis (dual namespace)"""
+        redis = await self._ensure_redis()
+        if not redis:
+            logger.error("Failed to acquire Redis connection to add user")
+            return False
+        try:
+            user_json = user.model_dump_json()
+            orbit_json = json.dumps({
+                "email": user.username,
+                "name": user.username.split("@")[0].replace(".", " ").title(),
+                "role": user.role.value if hasattr(user.role, 'value') else str(user.role)
+            })
+            await redis.set(f"config:users:{user.username}", user_json)
+            await redis.set(f"orbit:user:{user.username}", orbit_json)
+            logger.info(f"✅ User {user.username} saved to Redis config:users and orbit:user")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to add user to Redis: {str(e)}")
+            return False
+
+    async def delete_user(self, username: str) -> bool:
+        """Delete a user from Redis"""
+        redis = await self._ensure_redis()
+        if not redis:
+            return False
+        try:
+            if username == settings.DASHBOARD_USERNAME:
+                logger.warning(f"Prevented deletion of default admin: {username}")
+                return False
+            await redis.delete(f"config:users:{username}")
+            await redis.delete(f"orbit:user:{username}")
+            logger.info(f"🗑️ User {username} deleted from Redis")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete user from Redis: {str(e)}")
+            return False
+
+    # ============================================================
+    # Audit Log Management
+    # ============================================================
+
+    async def log_audit_action(self, entry: AuditLogEntry) -> bool:
+        """Log an administrative action to Redis"""
+        if not self.enabled:
+            return False
+        try:
+            key = "config:audit_log"
+            await self.redis.lpush(key, entry.model_dump_json())
+            await self.redis.ltrim(key, 0, 999)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to log audit action: {str(e)}")
+            return False
+
+    async def get_audit_logs(self, limit: int = 100) -> List[AuditLogEntry]:
+        """Retrieve recent audit log entries"""
+        if not self.enabled:
+            return []
+        try:
+            key = "config:audit_log"
+            limit = min(limit, 1000)
+            logs_data = await self.redis.lrange(key, 0, limit - 1)
+            logs = []
+            for item in logs_data:
+                try:
+                    logs.append(AuditLogEntry.model_validate_json(item))
+                except Exception as ve:
+                    logger.error(f"Value error parsing audit log entry: {str(ve)}")
+            return logs
+        except Exception as e:
+            logger.error(f"Failed to get audit logs: {str(e)}")
+            return []
+
+    # ============================================================
+    # Utilities
+    # ============================================================
+
+    async def reload_config(self):
+        """Force reload configuration from Redis"""
+        logger.info("Configuration reloaded from Redis")
+        return True
+
+    async def clear_cache(self):
+        """Clear all cached data"""
+        if not self.enabled:
+            return False
+        try:
+            keys = await self.redis.keys("cache:*")
+            if keys:
+                await self.redis.delete(*keys)
+            logger.info(f"Cleared {len(keys)} cache entries")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to clear cache: {str(e)}")
+            return False
+
+
+# Singleton instance
+config_manager = ConfigManager()

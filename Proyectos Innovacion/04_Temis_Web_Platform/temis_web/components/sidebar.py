@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Sidebar component for TEMIS Web Flow
+Navigation for the 7 framework phases
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
+"""
+
+import reflex as rx
+from temis_web.state import FlowState
+
+PHASES_DATA = [
+    {"num": 1, "name": "Diagnóstico Estratégico", "icon": "file-search"},
+    {"num": 2, "name": "Inicio del Proyecto", "icon": "rocket"},
+    {"num": 3, "name": "Planificación Híbrida", "icon": "layout-grid"},
+    {"num": 4, "name": "Ejecución Iterativa", "icon": "code"},
+    {"num": 5, "name": "Monitoreo y Control", "icon": "activity"},
+    {"num": 6, "name": "Mejora Continua", "icon": "trending-up"},
+    {"num": 7, "name": "Cierre del Proyecto", "icon": "circle-check"},
+]
+
+
+def phase_item(phase: dict) -> rx.Component:
+    """Single phase sidebar item in light slate theme"""
+    is_active = FlowState.current_phase == phase["num"]
+    return rx.box(
+        rx.hstack(
+            rx.icon(phase["icon"], size=18, color=rx.cond(is_active, "#1e5a9a", "#52657a")),
+            rx.vstack(
+                rx.text(f"Fase {phase['num']}", size="1", weight="bold", color=rx.cond(is_active, "#1e5a9a", "#52657a")),
+                rx.text(phase["name"], size="2", weight="medium", color=rx.cond(is_active, "#17283c", "#52657a")),
+                spacing="0",
+            ),
+            spacing="3",
+            align="center",
+        ),
+        padding_x="3",
+        padding_y="2.5",
+        border_radius="md",
+        background_color=rx.cond(is_active, "rgba(30, 90, 154, 0.12)", "transparent"),
+        border_left=rx.cond(is_active, "3px solid #1e5a9a", "3px solid transparent"),
+        cursor="pointer",
+        on_click=lambda: FlowState.request_phase_change(phase["num"]),
+        _hover={"background_color": "#d9e2ec"},
+        width="100%",
+    )
+
+
+def sidebar() -> rx.Component:
+    """Left sidebar component in light slate theme"""
+    return rx.vstack(
+        rx.text("MARCO DE GOBERNANZA", size="1", weight="bold", color="#52657a", padding_x="3", padding_top="2"),
+        rx.vstack(
+            *[phase_item(p) for p in PHASES_DATA],
+            spacing="1",
+            width="100%",
+        ),
+        rx.divider(color_scheme="gray", margin_y="3"),
+        rx.vstack(
+            rx.text("ACCIONES DE LIENZO", size="1", weight="bold", color="#52657a", padding_x="3"),
+            rx.button(
+                rx.icon("trash-2", size=16),
+                " Limpiar Lienzo",
+                on_click=FlowState.clear_canvas,
+                color_scheme="ruby",
+                variant="soft",
+                width="100%",
+                size="2",
+            ),
+            spacing="2",
+            width="100%",
+            padding_x="1",
+        ),
+        width="240px",
+        height="calc(100vh - 65px)",
+        background_color="#eaf0f6",
+        border_right="1px solid #d9e2ec",
+        padding="3",
+        spacing="3",
+    )

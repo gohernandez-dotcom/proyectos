@@ -1,0 +1,138 @@
+/* ==========================================================================
+   TEMIS Web Flow - Executive Light Slate Design System & Stylesheet
+   Modern High-End SaaS: Glare-free Slate Base, Navy Header, WCAG 2.2 AA Contrast
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --temis-bg: #F3F6FA;
+  --temis-surface: #FFFFFF;
+  --temis-surface-subtle: #F8FAFC;
+  --temis-header-bg: #17324D;
+  --temis-sidebar-bg: #EAF0F6;
+  --temis-border: #D9E2EC;
+  --temis-border-subtle: #C9D6E3;
+  --temis-border-hover: #9FB3C8;
+  
+  --temis-text-primary: #17283C;
+  --temis-text-secondary: #52657A;
+  --temis-text-muted: #8295A9;
+  
+  --temis-accent-primary: #1E5A9A;
+  --temis-accent-primary-hover: #16487D;
+  --temis-accent-soft: rgba(30, 90, 154, 0.08);
+  --temis-accent-border: rgba(30, 90, 154, 0.25);
+  
+  --temis-success: #167148;
+  --temis-success-bg: #DCFCE7;
+  --temis-success-border: #86EFAC;
+  --temis-success-text: #166534;
+  
+  --temis-warning: #A76600;
+  --temis-warning-bg: #FEF3C7;
+  --temis-warning-border: #FDE68A;
+  --temis-warning-text: #92400E;
+  
+  --temis-danger: #B42335;
+  --temis-danger-bg: #FEE2E2;
+  --temis-danger-border: #FCA5A5;
+  --temis-danger-text: #991B1B;
+  
+  --temis-purple: #7C3AED;
+  --temis-purple-bg: #EDE9FE;
+  --temis-purple-border: #DDD6FE;
+  
+  --temis-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --temis-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --temis-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --temis-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Global Reset & Base Typography */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  background-color: var(--temis-bg) !important;
+  color: var(--temis-text-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Radix Theme Overrides for Executive Elegance */
+.radix-themes {
+  background-color: var(--temis-bg) !important;
+  color: var(--temis-text-primary) !important;
+}
+
+/* Custom Executive Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EAF0F6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9D6E3;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9FB3C8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C9D6E3 #EAF0F6;
+}
+
+/* Card Transitions & Elevations */
+.temis-card {
+  background-color: var(--temis-surface);
+  border: 1px solid var(--temis-border);
+  border-radius: 12px;
+  box-shadow: var(--temis-shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.temis-card:hover {
+  border-color: var(--temis-border-hover);
+  box-shadow: var(--temis-shadow-md);
+}
+
+/* Linear-style inputs */
+input, textarea, select {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--temis-border) !important;
+  color: var(--temis-text-primary) !important;
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  border-radius: 6px;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--temis-accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(30, 90, 154, 0.2) !important;
+  outline: none !important;
+}
+
+/* Hide "Built with Reflex" badge */
+a[href*="reflex.dev"],
+div:has(a[href*="reflex.dev"]),
+button:has(a[href*="reflex.dev"]),
+[class*="BuiltWithReflex"],
+[class*="built-with-reflex"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
