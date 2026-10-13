@@ -110,4 +110,5 @@ Si el cliente no tiene más dudas o corresponde cerrar la interacción:
     "summary_action": "generate_after_closing"
   }
 }
+"Prueba de guardado"
 ```
