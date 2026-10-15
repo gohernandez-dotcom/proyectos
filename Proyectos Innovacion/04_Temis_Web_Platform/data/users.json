@@ -17,16 +17,15 @@
     "assigned_projects_display": "Acceso Global"
   },
   {
-    "email": "ana.martinez@maxillc.com",
-    "name": "Lic. Ana Martínez",
-    "initials": "AM",
+    "email": "jaclemente@maxillc.com",
+    "name": "Jorge Angel Clemente Rico",
+    "initials": "JG",
     "password": "Temis123456*",
-    "role": "project_manager",
-    "role_label": "Dueño de Proyecto (PM)",
-    "department": "Operaciones & Procesos",
+    "role": "Super Admin",
+    "role_label": "Super Admin",
+    "department": "Dirección General & Tecnología",
     "assigned_projects": [
-      "PRJ-TEMIS",
-      "PRJ-X"
+      "all"
     ],
     "status": "active",
     "created_at": "2026-02-01",
