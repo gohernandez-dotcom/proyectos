@@ -5,15 +5,10 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    unzip \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl git unzip build-essential && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (required by Reflex for Next.js compilation)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
 
 # Copy requirements and install python packages
 COPY requirements.txt .
@@ -28,8 +23,7 @@ RUN python -m reflex init
 RUN python -m reflex export --no-zip
 
 # Expose web port
-EXPOSE 3000
-EXPOSE 8000
+EXPOSE 10000
 
-# Start Reflex in production mode
+# Start Reflex with production lightweight ASGI server (<50MB RAM)
 CMD ["python", "prod_server.py"]
