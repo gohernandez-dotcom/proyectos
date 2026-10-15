@@ -1,5 +1,5 @@
 # Production Dockerfile for TEMIS Web Flow (Reflex + FastAPI)
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -13,8 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (required by Reflex for Next.js compilation)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 # Copy requirements and install python packages
 COPY requirements.txt .
@@ -33,4 +32,4 @@ EXPOSE 3000
 EXPOSE 8000
 
 # Start Reflex in production mode
-CMD ["python", "-m", "reflex", "run", "--env", "prod", "--frontend-port", "3000"]
+CMD ["python", "prod_server.py"]
