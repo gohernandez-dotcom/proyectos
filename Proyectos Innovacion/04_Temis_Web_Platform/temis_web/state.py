@@ -3883,7 +3883,10 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         import os
         api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
         if not api_base.startswith("http"):
-            api_base = f"http://{api_base}:8000"
+            if "localhost" in api_base or "127.0.0.1" in api_base:
+                api_base = f"http://{api_base}:8000"
+            else:
+                api_base = f"https://{api_base}"
         url = f"{api_base.rstrip('/')}/api/diagrams/"
 
         self.status_message = "Guardando diagrama en la base de datos..."

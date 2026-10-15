@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Temis Media Studio & Project Exports
+exports/
+*.wav
+
+# Local databases and runtime state
+*.db
+*.sqlite
+*.sqlite3
+.states/
+.web/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

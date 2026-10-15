@@ -1,11 +1,12 @@
 services:
+  # ==============================================================================
   # 1. TEMIS Backend Service (FastAPI)
+  # ==============================================================================
   - type: web
     name: temis-backend
     env: python
     region: oregon
     plan: free
-    rootDir: Temis
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python -m backend.main"
     envVars:
@@ -18,13 +19,14 @@ services:
       - key: TEMIS_DRIVE_FOLDER_ID
         value: 1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI
 
+  # ==============================================================================
   # 2. TEMIS Web Flow Service (Reflex Full-Stack App)
+  # ==============================================================================
   - type: web
     name: temis-web-flow
     env: python
     region: oregon
     plan: free
-    rootDir: Temis
     buildCommand: "pip install -r requirements.txt && python -m reflex init && python -m reflex export --no-zip"
     startCommand: "python prod_server.py"
     envVars:

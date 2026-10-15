@@ -29,7 +29,7 @@ class TemisMediaStudioApp:
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("TEMIS Media Studio — Extractor de Procesos y Bitácoras (100% Local)")
+        self.root.title("Automatizacion de Procesos")
         self.root.geometry("980x720")
         self.root.minsize(860, 640)
         self.root.configure(bg="#0f172a")
@@ -81,7 +81,7 @@ class TemisMediaStudioApp:
 
         lbl_title = tk.Label(
             title_box,
-            text="TEMIS Media Studio",
+            text="Automatizacion de Procesos",
             font=("Segoe UI", 16, "bold"),
             fg="#38bdf8",
             bg="#1e293b"
@@ -90,7 +90,7 @@ class TemisMediaStudioApp:
 
         lbl_sub = tk.Label(
             title_box,
-            text="Extracción de Bitácoras con Capturas de Pantalla y Transcripción Offline (0 Tokens / 100% Local)",
+            text="Generacion de Bitacoras",
             font=("Segoe UI", 9),
             fg="#94a3b8",
             bg="#1e293b"
@@ -103,7 +103,7 @@ class TemisMediaStudioApp:
         
         lbl_badge = tk.Label(
             badge_box,
-            text="🔒 MODO 100% LOCAL (0 TOKENS)",
+            text="Fortalecimiento a Procesos",
             font=("Segoe UI", 9, "bold"),
             fg="#ccfbf1",
             bg="#0f766e"
@@ -280,7 +280,7 @@ class TemisMediaStudioApp:
 
         lbl_temis_tip = tk.Label(
             bottom_bar,
-            text="🚀 Arrastra el archivo .temis.json a TEMIS Web para enriquecer con IA",
+            text="🚀 Arrastra el archivo .temis.json a TEMIS Web",
             font=("Segoe UI", 9, "italic"),
             fg="#10b981",
             bg="#1e293b"
@@ -305,7 +305,7 @@ class TemisMediaStudioApp:
 
         self.lbl_no_photos = tk.Label(
             self.photos_scroll_frame,
-            text="Las capturas de pantalla detectadas por FFmpeg aparecerán aquí.",
+            text="Capturas de pantalla detectadas en el analisis",
             font=("Segoe UI", 10, "italic"),
             fg="#64748b",
             bg="#0f172a",
@@ -494,8 +494,9 @@ class TemisMediaStudioApp:
             self.root.after(0, self._render_results)
 
         except Exception as e:
-            self.status_var.set(f"❌ Error en el procesamiento: {str(e)}")
-            self.root.after(0, lambda: messagebox.showerror("Error", f"Ocurrió un error:\n{str(e)}"))
+            err_msg = str(e)
+            self.status_var.set(f"❌ Error en el procesamiento: {err_msg}")
+            self.root.after(0, lambda msg=err_msg: messagebox.showerror("Error", f"Ocurrió un error:\n{msg}"))
         finally:
             self.is_processing = False
             self.root.after(0, lambda: self.btn_process.config(state="normal", text="⚡ Extraer Capturas y Generar Bitácora"))
@@ -588,7 +589,7 @@ class TemisMediaStudioApp:
             f"Levantamiento 100% Local Completado.\n\n"
             f"📄 Bitácora Word con fotos: {os.path.basename(self.last_docx_path)}\n"
             f"📦 Paquete TEMIS: {os.path.basename(self.last_json_path)}\n\n"
-            f"Arrastra el archivo .temis.json a TEMIS Web para sincronizar."
+            
         )
 
     def _open_word_file(self):
